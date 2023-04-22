@@ -99,7 +99,7 @@ namespace SmarterGhosts
                 new CodeMatch(OpCodes.Ldc_R4)
             );
 
-            matcher.RemoveInstruction().Insert(new CodeInstruction(OpCodes.Ldc_R4, 1f));
+            matcher.SetOperandAndAdvance(1.5f);
 
             return matcher.InstructionEnumeration();
         }
@@ -111,7 +111,7 @@ namespace SmarterGhosts
             __instance._effects.SetMovementStyle(GhostEffects.MovementStyle.Stalk);
         }
 
-        [HarmonyPostfix]
+        [HarmonyPostfix] //Turn faster, else it looks weird
         [HarmonyPatch(typeof(CallForHelpAction), nameof(CallForHelpAction.FixedUpdate_Action))]
         public static void CallForHelpAction_FixedUpdate_Action_Postfix(CallForHelpAction __instance)
         {

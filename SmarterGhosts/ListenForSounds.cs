@@ -19,10 +19,10 @@ namespace SmarterGhosts
             loudNoise = new(), 
             veryLoudNoise = new();
         private static float
-            verySoftRadius = 6,
-            softRadius = 12,
-            mediumRadius = 15, 
-            loudRadius = 20, 
+            verySoftRadius = 7.5f,
+            softRadius = 10,
+            mediumRadius = 17, 
+            loudRadius = 22, 
             veryLoudRadius = 25;
 
         public class Noise { public bool Active; }
@@ -44,13 +44,22 @@ namespace SmarterGhosts
                             ghost._controller.WorldToLocalPosition(noiseMaker.GetNoiseOrigin());
                     ghost.HintPlayerLocation(localNoisePosition, Time.time);
 
-                    if(Vector3.Distance(localNoisePosition, ghost._controller.GetLocalFeetPosition()) <= veryLoudRadius)
-                    {
-                        if (ghost.GetThreatAwareness() < GhostData.ThreatAwareness.IntruderConfirmed && ghost.GetCurrentActionName() != GhostAction.Name.IdentifyIntruder)
-                            ghost.ChangeAction(GhostAction.Name.IdentifyIntruder);
-                        ghost._data.reduceGuardUtility = true;
-                    }
+                    if (Vector3.Distance(localNoisePosition, ghost._controller.GetLocalFeetPosition()) <= veryLoudRadius) ReactToNoise(ghost);
                 };
+            }
+        }
+
+        private static void ReactToNoise(GhostBrain ghost)
+        {
+            ghost._data.reduceGuardUtility = true;
+            if (ghost.GetThreatAwareness() >= GhostData.ThreatAwareness.IntruderConfirmed) return;
+            if (ghost.GetAction(GhostAction.Name.IdentifyIntruder) != null && ghost.GetCurrentActionName() != GhostAction.Name.IdentifyIntruder)
+                ghost.ChangeAction(GhostAction.Name.IdentifyIntruder);
+            else if (ghost.GetCurrentActionName() == GhostAction.Name.Sentry)
+            {
+                var action = ghost.GetCurrentAction() as SentryAction;
+                action._spotlighting = true;
+                action._controller.ChangeLanternFocus(1f, 2f);
             }
         }
 
