@@ -119,7 +119,7 @@ namespace SmarterGhosts
                 if (noise != null) ModInstance.StartCoroutine(MakeNoise(noise));
             }
 
-            return audioType; //for use in transpilers, audioType is returned unaltered to the stack
+            return audioType; //for use in the transpilers below, audioType is returned unaltered to the stack
                               //volume is loaded again by the transpiler itself because I can't think of a better way to do this send help
         }
 

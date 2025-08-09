@@ -76,40 +76,42 @@ namespace SmarterGhosts
             }
         }
 
-        [HarmonyTranspiler] //Move elevator code outside of the if check and add null checks to prevent resulting NREs
+        [HarmonyTranspiler] //Move elevator code outside of the if lights extinguished check and add null checks to prevent resulting NREs
         [HarmonyPatch(typeof(GhostZone2Director), nameof(GhostZone2Director.Update))]
         public static IEnumerable<CodeInstruction> GhostZone2Director_Update_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
-            var matcher = new CodeMatcher(instructions, generator).MatchForward(false,
-                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(DreamObjectProjector), nameof(DreamObjectProjector.SetLit)))
-            ).Advance(1).CreateLabel(out Label loopStart);
+            var matcher = new CodeMatcher(instructions, generator).MatchForward(false, //elevator code is a for loop and this marks its beginning, setting the index to 0
+                new CodeMatch(OpCodes.Ldc_I4_0),
+                new CodeMatch(OpCodes.Stloc_0),
+                new CodeMatch(OpCodes.Br) //this jumps to where it checks the index against the length of the array
+            ).CreateLabel(out Label loopStart);
 
-            matcher.MatchForward(false,
+            matcher.MatchForward(false, //raise elevator loop index by 1
                 new CodeMatch(OpCodes.Ldloc_0),
                 new CodeMatch(OpCodes.Ldc_I4_1),
                 new CodeMatch(OpCodes.Add),
                 new CodeMatch(OpCodes.Stloc_0)
-            ).CreateLabel(out Label loopEnd);
+            ).CreateLabel(out Label loopEnd); //if we want to use a continue this is the part we want to jump in front of
 
-            matcher.Advance(-matcher.Pos);
+            matcher.Advance(-matcher.Pos); //back to the start for more matching
 
-            matcher.MatchForward(true,
+            matcher.MatchForward(true, //if (this._lightsProjectorExtinguished) { }
                 new CodeMatch(OpCodes.Ldarg_0),
                 new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(GhostZone2Director), nameof(GhostZone2Director._lightsProjectorExtinguished))),
                 new CodeMatch(OpCodes.Brfalse)
-            ).SetOperandAndAdvance(loopStart);
+            ).SetOperandAndAdvance(loopStart); //instead of jumping right to the return statement if false, we jump to the elevator code instead
 
-            matcher.MatchForward(true, 
+            matcher.MatchForward(true, //part of this._elevatorsStatus[i], accessed within the elevator loop right at its start
                 new CodeMatch(OpCodes.Ldarg_0),
                 new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(GhostZone2Director), nameof(GhostZone2Director._elevatorsStatus))),
                 new CodeMatch(OpCodes.Ldloc_0)
-            ).Advance(1).Insert(
+            ).Advance(1).Insert( //use arguments on the stack to check for null instead
                 Transpilers.EmitDelegate<Func<GhostZone2Director.ElevatorStatus[], int, bool>>((elevatorsStatus, index) =>
                 {
-                    return elevatorsStatus[index].elevatorAction == null || elevatorsStatus[index].ghostController == null;
-                }),
+                    return elevatorsStatus[index].elevatorAction == null || elevatorsStatus[index].ghostController == null; //these normally only get changed from null when the lights go out
+                }), //since we set them ourselves, checking for null is a good replacement for the if lights extinguished
                 new CodeInstruction(OpCodes.Brtrue, loopEnd),
-                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldarg_0), //gotta make sure we leave the stack as we found it
                 new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(GhostZone2Director), nameof(GhostZone2Director._elevatorsStatus))),
                 new CodeInstruction(OpCodes.Ldloc_0)
             );

@@ -12,10 +12,10 @@ namespace SmarterGhosts
         {
             var newGhosts = ReactivateGhosts("Prefab_IP_GhostBird_TheCollector");
 
-            if (GameObject.Find("GhostDirector_Zone2")?.TryGetComponent(out GhostZone2Director zone2Director) ?? false)
+            if (DirectorZone2 != null)
             {
-                AddGhosts(ref zone2Director._directedGhosts, newGhosts, "Prefab_IP_GhostBird_TheCollector");
-                AddGhosts(ref zone2Director._undergroundGhosts, newGhosts, "Prefab_IP_GhostBird_TheCollector");
+                AddGhosts(ref DirectorZone2._directedGhosts, newGhosts, "Prefab_IP_GhostBird_TheCollector");
+                AddGhosts(ref DirectorZone2._undergroundGhosts, newGhosts, "Prefab_IP_GhostBird_TheCollector");
             }
 
             newGhosts.FirstOrDefault(obj => obj.gameObject.name == "Prefab_IP_GhostBird_TheCollector").WakeUp();
@@ -39,7 +39,7 @@ namespace SmarterGhosts
 
         private static void AddGhosts(ref GhostBrain[] addTo, List<GhostBrain> addFrom, params string[] objNames)
         {
-            if (addTo == null) return;
+            if (addTo == null || addFrom == null) return;
             var list = addTo.ToList();
             list.AddRange(addFrom.Where(obj => Array.Exists(objNames, name => obj.gameObject.name == name)));
             addTo = list.ToArray();

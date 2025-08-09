@@ -24,7 +24,7 @@ namespace SmarterGhosts
 
         private void Start()
         {
-            LoadManager.OnCompleteSceneLoad += (scene, loadScene) =>
+            LoadManager.OnCompleteSceneLoad += (_, loadScene) =>
             {
                 if (loadScene != OWScene.SolarSystem) return;
                 ModSetup();
