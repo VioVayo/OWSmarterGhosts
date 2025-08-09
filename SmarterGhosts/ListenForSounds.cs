@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
@@ -12,20 +11,13 @@ namespace SmarterGhosts
     public class ListenForSounds
     {
         private static PlayerNoiseMaker playerNoiseMaker;
-        private static Noise
-            verySoftNoise = new(), 
-            softNoise = new(),
-            mediumNoise = new(), 
-            loudNoise = new(), 
-            veryLoudNoise = new();
         private static float
             verySoftRadius = 7.5f,
             softRadius = 10,
             mediumRadius = 17, 
             loudRadius = 22, 
-            veryLoudRadius = 25;
-
-        public class Noise { public bool Active; }
+            veryLoudRadius = 25,
+            currentRadius;
 
 
         public static void Setup()
@@ -68,16 +60,16 @@ namespace SmarterGhosts
         {
             if (PlayerState.InDreamWorld()) 
             {
-                Noise noise = null;
+                currentRadius = 0;
 
                 switch (audioType)
                 {
                     case AudioType.ImpactHighSpeed:
-                        noise = veryLoudNoise;
+                        currentRadius = veryLoudRadius;
                         break;
                     case AudioType.ImpactMediumSpeed:
                     case AudioType.Splash_Water_Probe:
-                        noise = loudNoise;
+                        currentRadius = loudRadius;
                         break;
                     case AudioType.MovementShallowWaterFootstep:
                     case AudioType.ImpactLowSpeed:
@@ -89,7 +81,7 @@ namespace SmarterGhosts
                     case AudioType.MovementWoodCreakLanding:
                     case AudioType.MovementGravelLanding:
                     case AudioType.LandingDirt:
-                        noise = (volume >= 0.7f) ? mediumNoise : softNoise;
+                        currentRadius = (volume >= 0.7f) ? mediumRadius : softRadius;
                         break;
                     case AudioType.MovementMetalFootstep:
                     case AudioType.MovementWoodCreakFootstep:
@@ -99,7 +91,7 @@ namespace SmarterGhosts
                     case AudioType.MovementSnowLanding:
                     case AudioType.MovementWoodLanding:
                     case AudioType.MovementLeavesLanding:
-                        noise = (volume >= 0.7f) ? softNoise : verySoftNoise;
+                        currentRadius = (volume >= 0.7f) ? softRadius : verySoftRadius;
                         break;
                     case AudioType.MovementGrassFootstep:
                     case AudioType.MovementStoneFootstep:
@@ -111,23 +103,13 @@ namespace SmarterGhosts
                     case AudioType.MovementLeavesFootsteps:
                     case AudioType.MovementNomaiMetalFootstep:
                     case AudioType.MovementDirtFootstep:
-                        noise = verySoftNoise;
+                        currentRadius = verySoftRadius;
                         break;
                     default: break;
                 }
-
-                if (noise != null) ModInstance.StartCoroutine(MakeNoise(noise));
             }
-
             return audioType; //for use in the transpilers below, audioType is returned unaltered to the stack
                               //volume is loaded again by the transpiler itself because I can't think of a better way to do this send help
-        }
-
-        private static IEnumerator MakeNoise(Noise noise)
-        {
-            noise.Active = true;
-            yield return null;
-            noise.Active = false;
         }
 
 
@@ -170,15 +152,6 @@ namespace SmarterGhosts
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PlayerNoiseMaker), nameof(PlayerNoiseMaker.Update))]
-        public static void PlayerNoiseMaker_Update_Postfix()
-        {
-            var newMinimum = 
-                veryLoudNoise.Active ? veryLoudRadius : 
-                loudNoise.Active ? loudRadius : 
-                mediumNoise.Active ? mediumRadius :
-                softNoise.Active ? softRadius :
-                verySoftNoise.Active ? verySoftRadius : 0;
-            playerNoiseMaker._noiseRadius = Mathf.Max(newMinimum, playerNoiseMaker._noiseRadius);
-        }
+        public static void PlayerNoiseMaker_Update_Postfix() { playerNoiseMaker._noiseRadius = Mathf.Max(currentRadius, playerNoiseMaker._noiseRadius); }
     }
 }
