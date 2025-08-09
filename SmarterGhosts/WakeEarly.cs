@@ -48,6 +48,13 @@ namespace SmarterGhosts
             return matcher.InstructionEnumeration();
         }
 
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(AutoSlideProjector), nameof(AutoSlideProjector.Play))]
+        public static bool AutoSlideProjector_Play_Prefix(AutoSlideProjector __instance)
+        {
+            return !(__instance == DirectorHotel._slideProjector && theaterGhost._data.hasWokenUp);
+        }
+
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(GhostBrain), nameof(GhostBrain.HearCallForHelp))]
